@@ -27,7 +27,7 @@ Caveat: these are candidate misses pending sponsor/judge validation; several dep
 ## Reliability observations
 
 - **Consensus works:** both multi-model findings (F1, F2, F3, F4, F11) held up under cross-reading; no multi-model finding was an obvious false positive.
-- **PoC quality varied:** ox-alpha ran its PoCs; most others shipped outlines. Executed-PoC models had zero false positives in this run.
+- **PoC quality varied:** ox-alpha and Claude ran their PoCs (Claude: 8 passing Foundry tests); most others shipped outlines. Executed-PoC models had zero false positives in this run.
 - **Coverage claims ≠ depth:** every model claimed full-file coverage; GLM 5.2's empty result and DeepSeek's narrow-but-deep set show coverage lists are weak evidence.
 - **Failure mode exists:** a frontier model returning zero findings with full confidence is possible; ensemble runs are necessary, not optional.
 

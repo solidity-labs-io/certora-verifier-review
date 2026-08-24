@@ -28,7 +28,9 @@
 3. Identical prompt, identical snapshot, no per-model tuning.
 4. Disclosure: the sponsor **recon PDF** (`Kleidi-Recon-Report.pdf`) was present in all six working copies. This matches contest conditions — C4 wardens received the same recon — but readers should know models had more than bare source. No model's output references the C4 findings report, which was verifiably absent from every copy.
 
-## Ground truth: C4 findings being measured against
+## Ground truth: two reference frames
+
+**Frame 1 — Code4rena competition (Oct 15–25 2024, 27 wardens):**
 
 | C4 ID | Finding | Final severity |
 | --- | --- | --- |
@@ -37,3 +39,5 @@
 | M-03 | `_afterCall` re-checks readiness against a *newly lowered* `expirationPeriod` → `updateExpirationPeriod` can become unexecutable | Medium |
 
 Plus 11 low/QA reports. No High/Critical findings were produced by the C4 competition.
+
+**Frame 2 — Certora baseline (2026-08-22, same commit, independent pipeline):** 0 High / 3 Medium / 10 Low / 24 Info — raw JSON and summary under [`primary/certora-baseline/`](../primary/certora-baseline/README.md). Used to corroborate (or contradict) model findings; cross-reference on Page 5.

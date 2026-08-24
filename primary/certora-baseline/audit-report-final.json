@@ -1,0 +1,503 @@
+{
+  "config": {
+    "version": "0.1.0",
+    "date": "2026-08-22 23:43 UTC",
+    "target": "https://github.com/solidity-labs-io/kleidi",
+    "audit_type": "full",
+    "branch": "0d72b6cb5725c1380212dc76257da96fcfacf22f",
+    "max_iterations": 10,
+    "context": [
+      "docs/ACL.md",
+      "docs/ADERYN.md",
+      "docs/AUDIT_LOG.md",
+      "docs/AUDIT_SCOPE.md",
+      "docs/CALLDATA_WHITELISTING.md",
+      "docs/DEPLOYMENT.md",
+      "docs/EDGECASES.md",
+      "docs/INVARIANTS.md",
+      "docs/KNOWN_ISSUES.md",
+      "docs/MORPHO_EXAMPLE.md",
+      "docs/REQUIREMENTS.md",
+      "docs/SLITHER.md",
+      "docs/TESTING.md",
+      "src/BytesHelper.sol",
+      "src/ConfigurablePause.sol",
+      "src/Guard.sol",
+      "src/InstanceDeployer.sol",
+      "src/RecoverySpell.sol",
+      "src/RecoverySpellFactory.sol",
+      "src/Timelock.sol",
+      "src/TimelockFactory.sol",
+      "src/deploy/SystemDeploy.s.sol",
+      "src/interface/CErc20Interface.sol",
+      "src/interface/CEtherInterface.sol",
+      "src/interface/IMorpho.sol",
+      "src/interface/IMulticall3.sol",
+      "src/interface/WETH9.sol",
+      "src/utils/Constants.sol",
+      "src/utils/Create2Helper.sol",
+      "src/views/AddressCalculation.sol"
+    ]
+  },
+  "findings": {
+    "highs": [],
+    "mediums": [
+      {
+        "id": "M-01",
+        "title": "Unbounded loop in `pause()` lets a compromised Safe permanently disable the guardian via gas griefing",
+        "severity": "MEDIUM",
+        "locations": [
+          "[/Timelock.sol#L521-L577](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L521-L577)",
+          "[/Timelock.sol#L687-L700](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L687-L700)",
+          "src/Timelock.sol:703-710",
+          "src/Timelock.sol:997-1005"
+        ],
+        "description": "`pause()` iterates over the entire `_liveProposals` set, performing several storage operations per element (`delete timestamps[id]`, `_liveProposals.remove(id)`, and event emission). The set has no size cap, and `schedule()` / `scheduleBatch()` can be called by the Safe to add entries with no upper bound and without any costs beyond gas. An attacker controlling a compromised Safe can spam the timelock with dummy proposals, bloating `_liveProposals` with thousands of entries. When the guardian attempts to call `pause()` to stop the attack, the O(n) loop will consume more gas than the block limit, causing the transaction to revert with an Out-of-Gas error. This permanently disables the Guardian's ability to emergency pause and stop an attack.",
+        "recommendation": "Do not clear proposals in an O(n) loop inside the emergency function. Instead, implement a global `pauseNonce` or `pauseTimestamp` in the contract state. When `pause()` is called, simply increment the nonce or update the timestamp. The `isOperationReady` check can then automatically invalidate any proposal scheduled before the current nonce/timestamp. Alternatively, enforce a safe maximum limit on the number of live proposals."
+      },
+      {
+        "id": "M-02",
+        "title": "Index-based whitelist removals via swap-and-pop lead to order dependency and silently desynchronize off-chain views",
+        "severity": "MEDIUM",
+        "locations": [
+          "src/Timelock.sol:588-648",
+          "[/Timelock.sol#L862-L919](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L862-L919)",
+          "[/Timelock.sol#L1193-L1243](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L1193-L1243)",
+          "[/Timelock.sol#L876-L934](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L876-L934)"
+        ],
+        "description": "The on-chain policy engine manages calldata check removals based strictly on the array index via a swap-and-pop operation. When multiple revocations are queued permissionlessly, executing them out of order shifts the index positions, causing a subsequent revocation to accidentally delete the wrong whitelist restriction. Furthermore, the swap-and-pop relocation of the last element emits no event. Off-chain indexers and policy monitors depending on `CalldataAdded` / `CalldataRemoved` logs will silently desynchronize, leading to incorrect removals of vital hot-signer restrictions.",
+        "recommendation": "Use stable identifiers like the exact start and end bounds (`contract, selector, startIndex, endIndex`) to locate and remove checks, rather than array indices. Emit a dedicated relocation event (e.g., `CalldataCheckMoved`) whenever the swap-and-pop alters an entry's position."
+      },
+      {
+        "id": "M-03",
+        "title": "Recovery spells are mutually non-exclusive and cannot be quickly disabled by recovered owners",
+        "severity": "MEDIUM",
+        "locations": [
+          "src/RecoverySpell.sol:287-289",
+          "[/RecoverySpell.sol#L165-L170](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/RecoverySpell.sol#L165-L170)",
+          "[/InstanceDeployer.sol#L274-L291](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/InstanceDeployer.sol#L274-L291)",
+          "src/Guard.sol:55-69",
+          "src/Timelock.sol:521-527"
+        ],
+        "description": "`InstanceDeployer.createSystemInstance()` simultaneously enables every entry in `instance.recoverySpells` as a module. However, executing a recovery spell removes only itself. Other enabled spells persist and can be executed instantly to reverse the recovery since their delays have elapsed. Recovered owners cannot disable the remaining spells quickly because `Guard` blocks Safe self-calls, forcing them to endure a lengthy Timelock proposal to revoke competing spells.",
+        "recommendation": "Introduce a per-Safe recovery epoch counter committed in the EIP-712 digest to invalidate older spells, or have `executeRecovery()` accept a list of sibling spells to disable them collectively within the same multicall."
+      }
+    ],
+    "lows": [
+      {
+        "id": "L-01",
+        "title": "Documented Morpho policies and configurations contain critical flaws allowing asset drain and preventing withdrawals",
+        "severity": "LOW",
+        "locations": [
+          "[/MORPHO_EXAMPLE.md#L31-L57](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/docs/MORPHO_EXAMPLE.md#L31-L57)",
+          "[/IMorpho.sol#L157-L177](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/interface/IMorpho.sol#L157-L177)",
+          "[/MORPHO_EXAMPLE.md#L47-L56](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/docs/MORPHO_EXAMPLE.md#L47-L56)",
+          "[/MORPHO_EXAMPLE.md#L16-L27](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/docs/MORPHO_EXAMPLE.md#L16-L27)",
+          "docs/MORPHO_EXAMPLE.md:51-63",
+          "src/TimelockFactory.sol:6-18",
+          "[/MORPHO_EXAMPLE.md#L31-L45](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/docs/MORPHO_EXAMPLE.md#L31-L45)",
+          "src/Timelock.sol:475-486"
+        ],
+        "description": "Multiple severe issues exist in the Morpho integration examples. First, the withdrawal whitelist validates `onBehalf` instead of `receiver`, allowing a hot signer to drain the Morpho position by setting `receiver` to their own address. Second, the example policy whitelists `approve` with the Timelock as the `spender` instead of Morpho, making the supply flow unexecutable. Finally, the supply and withdraw selectors in the documentation are invalid (`0x928182123` is malformed, and `0x872387fe` is incorrect for withdrawal), which either prevents configuration or causes legitimate operations to revert due to missing calldata checks.",
+        "recommendation": "Update the Morpho configuration examples to correctly constrain the `receiver` parameter (or both `onBehalf` and `receiver`). Ensure the `spender` for `approve` is the Morpho contract, not the Timelock. Derive selectors dynamically (e.g., `IMorpho.withdraw.selector`) instead of hardcoding malformed or incorrect literals, and add integration tests to verify the documented policies."
+      },
+      {
+        "id": "L-02",
+        "title": "Strict inequality in `_addCalldataCheck` mistakenly prevents adding contiguous calldata checks",
+        "severity": "LOW",
+        "locations": [
+          "src/Timelock.sol:1092-1123",
+          "src/BytesHelper.sol:34-58"
+        ],
+        "description": "The `_addCalldataCheck` function verifies that new calldata checks do not partially overlap with existing ones using strict inequalities (`startIndex > indexes[i].endIndex || endIndex < indexes[i].startIndex`). Because byte slices use half-open ranges `[start, end)`, this validation improperly rejects valid adjacent, non-overlapping slices (e.g., parameter 1 at `[4, 36)` and parameter 2 at `[36, 68)`). This bug prevents administrators from whitelisting distinct, consecutive ABI arguments. To bypass the revert, they must group contiguous parameters into a single massive byte slice, forcing them to supply a Cartesian product of acceptable hash configurations, which vastly increases the likelihood of a misconfigured or incomplete whitelist.",
+        "recommendation": "Update the overlap checks to use inclusive inequalities (greater-than-or-equal / less-than-or-equal) to permit correctly aligned boundaries: `require(startIndex >= indexes[i].endIndex || endIndex <= indexes[i].startIndex, ...)`."
+      },
+      {
+        "id": "L-03",
+        "title": "`BytesHelper` functions are `public`, forcing external library linkage and breaking deterministic cross-chain addresses",
+        "severity": "LOW",
+        "locations": [
+          "[/BytesHelper.sol#L3-L68](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/BytesHelper.sol#L3-L68)",
+          "[/Timelock.sol#L74-L75](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L74-L75)",
+          "src/Timelock.sol:475-503",
+          "src/TimelockFactory.sol:37-58",
+          "[/SystemDeploy.s.sol#L37-L72](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/deploy/SystemDeploy.s.sol#L37-L72)"
+        ],
+        "description": "The `BytesHelper` utility functions are declared as `public`, which prompts the compiler to externalize them and require linked deployment. The resulting linked address is injected directly into the `Timelock`'s bytecode. Because external libraries are usually deployed in a nonce-dependent manner (or have network-specific deployment addresses), the embedded `Timelock` creation bytecode will differ across chains. This variability radically alters the resulting CREATE2 deterministic address generated by `TimelockFactory`, completely breaking the protocol's core architectural guarantee that counterfactual addresses for user contracts will align identically across all deployments on all chains.",
+        "recommendation": "Modify all functions in the `BytesHelper` library to be `internal` so the compiler automatically inlines the library functions directly into the `Timelock` bytecode. This removes the external linking requirement and ensures robust cross-chain bytecode determinism."
+      },
+      {
+        "id": "L-04",
+        "title": "Absent or incorrect Multicall3 deployment causes silent configuration failure and permanently bricks system instances",
+        "severity": "LOW",
+        "locations": [
+          "src/InstanceDeployer.sol:107-119",
+          "src/InstanceDeployer.sol:246-249",
+          "[/InstanceDeployer.sol#L381-L403](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/InstanceDeployer.sol#L381-L403)",
+          "[/RecoverySpell.sol#L67-L70](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/RecoverySpell.sol#L67-L70)",
+          "src/RecoverySpell.sol:297-315"
+        ],
+        "description": "`InstanceDeployer` performs its Safe configurations via a single `DELEGATECALL` to a `multicall3` contract, returning success based purely on `Safe.execTransaction` returning `true`. A low-level EVM delegatecall to an address with zero code reports `true`. Thus, on chains where Multicall3 is missing or misconfigured, the transaction completes \"successfully\" without enabling the timelock module, guard, or replacing ownership. It emits a success event while rendering the newly created Safe irrevocably owned by the `InstanceDeployer`.",
+        "recommendation": "Require the target `multicall3` address to have code runtime lengths `> 0`. Implement explicit post-condition validation after batch executions: assert that `Safe(...).isOwner(address(this))` is false, that the Timelock module is correctly enabled, and verify that the target threshold and owners align with the intended setup parameters."
+      },
+      {
+        "id": "L-05",
+        "title": "Transient storage pollution in `RecoverySpellFactory` breaks composability of batch deployments",
+        "severity": "LOW",
+        "locations": [
+          "[/RecoverySpellFactory.sol#L58-L71](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/RecoverySpellFactory.sol#L58-L71)"
+        ],
+        "description": "`RecoverySpellFactory` utilizes EIP-1153 transient storage (`tstore(owner, 1)`) to check for duplicate owners during spell creation. However, the factory fails to zero-out these transient storage flags upon a successful deployment. Because transient storage endures for the entire scope of the transaction, subsequent nested or batched deployments targeting any of the same owners in the same transaction will encounter false-positive duplicate owner reverts. This completely prevents batched deployments sharing any identical signer identities.",
+        "recommendation": "Explicitly loop through the `owners` array at the end of the `createRecoverySpell` function to clear out the transient storage by calling `tstore(owner, 0)`."
+      },
+      {
+        "id": "L-06",
+        "title": "Failed Safe module transactions are marked as successfully executed",
+        "severity": "LOW",
+        "locations": [
+          "[/Timelock.sol#L588-L608](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L588-L608)",
+          "[/Timelock.sol#L621-L649](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L621-L649)",
+          "src/Timelock.sol:1021-1026"
+        ],
+        "description": "`_execute()` checks only whether the low-level call reverted and ignores its return data. Safe’s `execTransactionFromModule()` reports a failed inner transaction by returning `false` rather than reverting. If Safe administration through the Timelock uses this module function and the inner operation fails, the outer call still succeeds. The Timelock consequently emits `CallExecuted`, removes the proposal from `_liveProposals`, and permanently marks its identifier as completed even though no administration occurred.",
+        "recommendation": "Provide dedicated Safe-administration execution functions that call `execTransactionFromModule()` and explicitly require its returned boolean to be `true`. Alternatively, allow scheduled operations to specify and validate expected return data before `_afterCall()` marks them complete."
+      },
+      {
+        "id": "L-07",
+        "title": "Recovery fails when the first replacement owner is the retained current owner",
+        "severity": "LOW",
+        "locations": [
+          "[/RecoverySpell.sol#L244-L284](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/RecoverySpell.sol#L244-L284)",
+          "src/RecoverySpellFactory.sol:117-138",
+          "[/InstanceDeployer.sol#L291-L327](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/InstanceDeployer.sol#L291-L327)"
+        ],
+        "description": "`executeRecovery()` removes every current Safe owner except `existingOwners[existingOwnersLength - 1]`, then unconditionally attempts to replace that remaining owner with `owners[0]`. Safe's `swapOwner()` rejects a replacement address that is already a current owner. Consequently, when `owners[0] == existingOwners[existingOwnersLength - 1]`, the swap attempts to replace an owner with itself and reverts. This permanently traps recovery configurations intending to retain a trusted existing owner.",
+        "recommendation": "In `RecoverySpellFactory.createRecoverySpell`, reject any `owners[i]` that is already an owner of the target Safe. Alternatively, handle the retained-owner case during execution: if the remaining current owner equals `owners[0]`, skip the swap and allocate one fewer multicall entry."
+      },
+      {
+        "id": "L-08",
+        "title": "ERC-1271 recovery owners can never satisfy the signature threshold",
+        "severity": "LOW",
+        "locations": [
+          "[/RecoverySpell.sol#L183-L230](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/RecoverySpell.sol#L183-L230)",
+          "src/RecoverySpellFactory.sol:117-137"
+        ],
+        "description": "The factory permits contract-wallet addresses to be included in `owners`, but `executeRecovery()` supports only ECDSA signatures represented by `(v, r, s)` and derives every signer through `ECDSA.recover()`. A signature produced by the controller of an ERC-1271 wallet recovers to the controller's EOA, not the contract address stored in `owners`. This fails the transient-storage membership check, rendering recovery unexecutable if the threshold exceeds ECDSA-capable accounts.",
+        "recommendation": "Support contract signatures by accepting explicit signer addresses and arbitrary signature bytes, then validating them with OpenZeppelin's `SignatureChecker.isValidSignatureNow()`. Alternatively, explicitly restrict recovery signers to ECDSA-capable accounts."
+      },
+      {
+        "id": "L-09",
+        "title": "`InstanceDeployer` and Recovery spells do not adequately validate owner addresses, causing recovery failures or trapped Safes",
+        "severity": "LOW",
+        "locations": [
+          "src/RecoverySpell.sol:72-73",
+          "src/RecoverySpell.sol:267-279",
+          "src/RecoverySpellFactory.sol:117-137",
+          "[/InstanceDeployer.sol#L293-L328](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/InstanceDeployer.sol#L293-L328)",
+          "src/InstanceDeployer.sol:51-60",
+          "src/views/AddressCalculation.sol:62-66"
+        ],
+        "description": "The system fails to sanitize owner addresses supplied for Safe instantiation and recovery spells. `RecoverySpellFactory` allows `address(1)` (Safe's sentinel) and the Safe's own address as owners. `InstanceDeployer` does not exclude its own singleton address (`address(this)`) from the `instance.owners` array during configuration. Since the Safe `OwnerManager` rejects duplicates and sentinels but blindly accepts the deployer's address, the deployer can become permanently installed as an uncontrollable owner. For recovery spells, this means executions will permanently revert when adding invalid owners, destroying the recovery mechanism.",
+        "recommendation": "Implement comprehensive validation in `InstanceDeployer` and `RecoverySpellFactory`. Reject `address(0)`, `address(1)`, `address(this)` (the deployer/singleton), and the target Safe's address. Verify that the threshold is achievable."
+      },
+      {
+        "id": "L-10",
+        "title": "Address calculation can return permanently undeployable counterfactual wallets",
+        "severity": "LOW",
+        "locations": [
+          "[/AddressCalculation.sol#L26-L54](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/views/AddressCalculation.sol#L26-L54)",
+          "src/views/AddressCalculation.sol:88-106",
+          "src/Timelock.sol:271-308",
+          "src/InstanceDeployer.sol:231-236"
+        ],
+        "description": "The supposedly safe `calculateAddress()` does not validate constructor bounds or threshold constraints for Timelock and Safe. Returning addresses for undeployable configurations risks permanently trapping users' prefunded assets.",
+        "recommendation": "Integrate comprehensive parameter validation within `AddressCalculation` identical to the checks in `InstanceDeployer`."
+      }
+    ],
+    "infos": [
+      {
+        "id": "I-01",
+        "title": "Unbounded delays and expiration periods allow arithmetic overflow to permanently brick the timelock",
+        "severity": "INFO",
+        "locations": [
+          "src/Timelock.sol:289-293",
+          "[/Timelock.sol#L398-L422](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L398-L422)",
+          "[/Timelock.sol#L970-L977](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L970-L977)",
+          "src/Timelock.sol:1007-1015",
+          "[/Timelock.sol#L521-L539](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L521-L539)",
+          "[/Timelock.sol#L550-L577](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L550-L577)",
+          "[/Timelock.sol#L960-L968](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L960-L968)",
+          "[/Timelock.sol#L997-L1005](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L997-L1005)"
+        ],
+        "description": "The Timelock fails to enforce an upper bound on `delay` and `expirationPeriod`. When computing operation readiness or expiration (`timestamp + expirationPeriod`), passing excessively large parameters or scheduling an operation with a decades-long delay can cause arithmetic overflow (`Panic(0x11)`). This renders scheduled functions permanently inaccessible, prevents operations from expiring, and balloons the `_liveProposals` array because operations can never be cleaned up. This fixed gas cost increase can also grief the guardian's `pause()` function.",
+        "recommendation": "Add explicit upper bounds to `expirationPeriod` (e.g., `MAX_EXPIRATION_PERIOD`) and validate that `delay <= MAX_DELAY`. Alter execution window validation logic to use subtraction (e.g., `block.timestamp - timestamp <= expirationPeriod`) to guarantee arithmetic safety."
+      },
+      {
+        "id": "I-02",
+        "title": "Hand-rolled Safe signature assembly relies on uninitialized memory, leaving garbage bytes in the `s` field",
+        "severity": "INFO",
+        "locations": [
+          "[/InstanceDeployer.sol#L335-L380](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/InstanceDeployer.sol#L335-L380)"
+        ],
+        "description": "In `InstanceDeployer.sol`, an inline assembly block manually crafts a 65-byte `v=1` Safe signature but intentionally fails to write the `s` word (relying on the assumption that free memory is pre-zeroed). Memory fetched from the free memory pointer is not guaranteed to be clean, meaning any prior allocations could populate the uninitialized `s` segment with random garbage bytes. While Safe 1.3.0 currently ignores the `s` values for approved hash signatures (`v=1`), relying on garbage memory breaks robustness, can cause unexpected failures with future Safe iterations, and can disrupt off-chain tooling parsers.",
+        "recommendation": "Initialize the `s` field cleanly by executing `mstore(add(ptr, 0x40), 0)` between assigning the `r` and `v` values. Alternatively, construct the signature natively using `abi.encodePacked(r, bytes32(0), v)`."
+      },
+      {
+        "id": "I-03",
+        "title": "No bulk cancellation path — the Guard's delegatecall ban forces one Safe transaction per queued proposal",
+        "severity": "INFO",
+        "locations": [
+          "[/Timelock.sol#L657-L665](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L657-L665)",
+          "[/Guard.sol#L55-L69](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Guard.sol#L55-L69)",
+          "src/Timelock.sol:687-700"
+        ],
+        "description": "`Timelock.cancel(bytes32 id)` cancels exactly one proposal and is gated by `onlySafe`. There is no batch variant. The Safe cannot work around this because `Guard.checkTransaction` unconditionally requires `operationType == Enum.Operation.Call`, preventing the Safe from using `DELEGATECALL` into Multicall3 to batch multiple `cancel` calls. Cancelling `N` queued malicious proposals post-recovery requires `N` separate multi-signature threshold transactions, vastly increasing recovery friction.",
+        "recommendation": "Add a batch cancellation entry point (e.g. `cancelBatch(bytes32[] calldata ids) external onlySafe whenNotPaused`) or a `cancelAll()` function. Consider adding a monotonically increasing proposal epoch to invalidate outstanding IDs."
+      },
+      {
+        "id": "I-04",
+        "title": "A reentrant emergency pause does not stop the active operation",
+        "severity": "INFO",
+        "locations": [
+          "src/Timelock.sol:588-608",
+          "src/Timelock.sol:621-649",
+          "src/Timelock.sol:687-700",
+          "src/Timelock.sol:715-755"
+        ],
+        "description": "Before making an external call, execution functions remove the current proposal from `_liveProposals`. If a contract-based guardian reenters `pause()` during the execution, the pause succeeds but cannot cancel the active proposal because it is not in the live set. Because there is no check enforcing the pause state upon returning, remaining calls in batch execution will continue executing while the Timelock is formally paused.",
+        "recommendation": "Increment a monotonic pause epoch whenever `pause()` is called. Snapshot this epoch before external execution and require it to remain unchanged immediately after every external call in both single and batched functions."
+      },
+      {
+        "id": "I-05",
+        "title": "`instance.threshold` parameter is silently bypassed during single-owner setups",
+        "severity": "INFO",
+        "locations": [
+          "src/InstanceDeployer.sol:293-328"
+        ],
+        "description": "If `instance.owners.length == 1`, `InstanceDeployer` only swaps out the owner and entirely bypasses the `changeThreshold` step intended for the configuration. If a user sets a threshold larger than 1 for a single-owner instance, the setup proceeds without reverting but applies a security configuration mismatched with the user's intent.",
+        "recommendation": "Enforce strict parameter validation by requiring `instance.threshold <= instance.owners.length` up front, and explicitly apply the requested threshold even in the single-owner logic branch."
+      },
+      {
+        "id": "I-06",
+        "title": "`_execute` fails to verify existence of target code, causing absent protocol calls to fail silently",
+        "severity": "INFO",
+        "locations": [
+          "src/Timelock.sol:714-724",
+          "[/Timelock.sol#L1021-L1026](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L1021-L1026)"
+        ],
+        "description": "A low-level EVM `CALL` to an address that lacks runtime code returns `true`. Attempting to execute whitelisted logic against a non-existent protocol target triggers a false success and unconditionally locks native assets transferred within the transaction.",
+        "recommendation": "Include a validation check `require(target.code.length > 0, \"Timelock: target has no code\")` either dynamically within the `_execute` mechanism or statically during whitelist creation."
+      },
+      {
+        "id": "I-07",
+        "title": "`paused()` drops the `pauseStartTime == 0` short-circuit check, altering expected non-paused state behavior",
+        "severity": "INFO",
+        "locations": [
+          "[/ConfigurablePause.sol#L5-L8](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/ConfigurablePause.sol#L5-L8)",
+          "[/ConfigurablePause.sol#L66-L71](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/ConfigurablePause.sol#L66-L71)"
+        ],
+        "description": "The logic dictates that a contract should not report as paused if `pauseStartTime` is `0`. However, the code implicitly assumes `block.timestamp` always drastically outscales `pauseDuration`, causing early-timestamp developer testnets to evaluate to a natively paused state.",
+        "recommendation": "Restore explicit checking of the non-paused status by validating `return pauseStartTime != 0 && block.timestamp <= pauseStartTime + pauseDuration;`."
+      },
+      {
+        "id": "I-08",
+        "title": "Pinned Safe singleton is the non-L2 variant, blinding off-chain monitoring on L2 targets",
+        "severity": "INFO",
+        "locations": [
+          "docs/DEPLOYMENT.md:3-9",
+          "src/deploy/SystemDeploy.s.sol:21-28"
+        ],
+        "description": "`DEPLOYMENT.md` pins the Safe 1.3.0 L1 (`GnosisSafe`) singleton instead of the `GnosisSafeL2` singleton. Using the L1 singleton on L2 chains prevents the emission of module transaction events, degrading the ability for off-chain monitoring to detect in-progress attacks or pending recoveries.",
+        "recommendation": "Explicitly decide and document which singleton is used, and ideally deploy the `GnosisSafeL2` variant on layer-2 networks to restore Safe transaction indexing."
+      },
+      {
+        "id": "I-09",
+        "title": "`WETH9.deposit()` and `CEtherInterface.mint()` are declared non-payable although both require ETH",
+        "severity": "INFO",
+        "locations": [
+          "[/WETH9.sol#L3-L6](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/interface/WETH9.sol#L3-L6)",
+          "[/CEtherInterface.sol#L3-L5](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/interface/CEtherInterface.sol#L3-L5)",
+          "[/EDGECASES.md#L9-L11](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/docs/EDGECASES.md#L9-L11)"
+        ],
+        "description": "The interface declarations for `WETH9` and `CEtherInterface` omit `payable` for `deposit()` and `mint()`. Integrations relying on these interfaces cannot attach ETH to the call, breaking the documented mitigation strategies relying on WETH wrapping.",
+        "recommendation": "Mark both functions as `payable` in the interfaces."
+      },
+      {
+        "id": "I-10",
+        "title": "`RecoveryInitiated` always logs the factory as `caller`, not the actual initiator",
+        "severity": "INFO",
+        "locations": [
+          "[/RecoverySpell.sol#L86-L89](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/RecoverySpell.sol#L86-L89)",
+          "[/RecoverySpell.sol#L124-L126](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/RecoverySpell.sol#L124-L126)"
+        ],
+        "description": "The `RecoveryInitiated` event emitted in the `RecoverySpell` constructor always logs `msg.sender` as the caller, which corresponds to the `RecoverySpellFactory`. This prevents attribution of who actually initiated the recovery.",
+        "recommendation": "Pass the original caller into the constructor from the factory and emit that address in the event."
+      },
+      {
+        "id": "I-11",
+        "title": "Access-control review artifacts omit `removeCalldataCheckDatahash` and describe outdated contracts",
+        "severity": "INFO",
+        "locations": [
+          "docs/ACL.md:81-88",
+          "docs/AUDIT_LOG.md:21-26",
+          "docs/SLITHER.md:71-72",
+          "[/Timelock.sol#L876-L881](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L876-L881)"
+        ],
+        "description": "The documentation serving as the access-control and static-analysis review record is out of sync with the codebase. The `onlyTimelock` function `removeCalldataCheckDatahash` is missing, and static analysis results mention deprecated components like `ConfigurablePauseGuardian`.",
+        "recommendation": "Regenerate `ACL.md` and `SLITHER.md` against the current source tree, ensuring all privileged mutating functions are documented."
+      },
+      {
+        "id": "I-12",
+        "title": "A zero guard configuration silently deploys Safes without timelock enforcement",
+        "severity": "INFO",
+        "locations": [
+          "[/InstanceDeployer.sol#L107-L119](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/InstanceDeployer.sol#L107-L119)",
+          "src/InstanceDeployer.sol:261-264",
+          "src/InstanceDeployer.sol:381-403"
+        ],
+        "description": "The `InstanceDeployer` constructor accepts a `_guard` parameter without validation. Safe treats `address(0)` as the command to disable the guard. Passing a zero guard produces a Safe lacking the Guard module essential for preventing execution circumvention.",
+        "recommendation": "Reject an invalid guard during construction by requiring `_guard != address(0)` and `_guard.code.length != 0`."
+      },
+      {
+        "id": "I-13",
+        "title": "Timelock invariants attribute whitelisted execution to \"safe owners\" instead of `HOT_SIGNER_ROLE`",
+        "severity": "INFO",
+        "locations": [
+          "src/Timelock.sol:52",
+          "src/Timelock.sol:728-729",
+          "src/Timelock.sol:733-737"
+        ],
+        "description": "Contract-level invariant comments and NatSpec assert that \"only safe owners can execute whitelisted calldatas,\" conflicting with the actual `HOT_SIGNER_ROLE` implementation and leading to threat modeling errors.",
+        "recommendation": "Replace occurrences of \"safe owner\" with \"HOT_SIGNER_ROLE holders\" to correctly reflect independent roles."
+      },
+      {
+        "id": "I-14",
+        "title": "`SystemDeploy.validate()` gates every assertion behind a single address key and never validates `ADDRESS_CALCULATION`",
+        "severity": "INFO",
+        "locations": [
+          "[/SystemDeploy.s.sol#L76-L132](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/deploy/SystemDeploy.s.sol#L76-L132)",
+          "[/SystemDeploy.s.sol#L38-L74](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/deploy/SystemDeploy.s.sol#L38-L74)"
+        ],
+        "description": "`validate()` wraps all component validations in a single conditional checking only `TIMELOCK_FACTORY`. If missing, the validation silently passes. Additionally, `ADDRESS_CALCULATION` is completely omitted from the validation suite.",
+        "recommendation": "Give each component its own conditional block and explicitly assert bytecode lengths and constants for `ADDRESS_CALCULATION`."
+      },
+      {
+        "id": "I-15",
+        "title": "Recovery signatures do not expose the replacement owner set",
+        "severity": "INFO",
+        "locations": [
+          "src/RecoverySpell.sol:75-78",
+          "src/RecoverySpell.sol:105-150",
+          "src/RecoverySpell.sol:267-284"
+        ],
+        "description": "The recovery EIP-712 struct commits to thresholds and delays but omits the actual replacement owners. Malicious frontends can prompt signatures over opaque EIP-712 bodies hiding attacker-controlled ownership updates.",
+        "recommendation": "Include the replacement-owner set in the signed data as an `address[]` field or an explicit `ownersHash`."
+      },
+      {
+        "id": "I-16",
+        "title": "`Timelock.positionOf()` returns a 1-based position that is off-by-one with respect to `atIndex()`",
+        "severity": "INFO",
+        "locations": [
+          "[/Timelock.sol#L364-L373](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L364-L373)"
+        ],
+        "description": "`positionOf` returns OpenZeppelin's internal 1-based index (where `0` denotes absent), while `atIndex()` accepts a 0-based integer. Consumers chaining these helpers will access incorrect proposals or revert.",
+        "recommendation": "Update `positionOf` to return a 0-based index and a boolean flag for existence."
+      },
+      {
+        "id": "I-17",
+        "title": "`catch { }` in `InstanceDeployer` discards all revert data, masking genuine Safe-deployment failures",
+        "severity": "INFO",
+        "locations": [
+          "[/InstanceDeployer.sol#L186-L219](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/InstanceDeployer.sol#L186-L219)",
+          "src/InstanceDeployer.sol:94-105"
+        ],
+        "description": "Safe proxy creation errors are masked entirely behind an empty `catch` block meant to bypass front-running griefing. Critical malfunctions like out-of-gas or absent factories report identically as a generic panic, disabling error diagnostics.",
+        "recommendation": "Use `catch (bytes memory reason)` and log the reason when failing gracefully, ensuring that subsequent proxy checks return comprehensible `require` errors."
+      },
+      {
+        "id": "I-18",
+        "title": "`Timelock.tokensReceived` is unreachable dead code; ERC-777 `send()` to the Timelock still reverts",
+        "severity": "INFO",
+        "locations": [
+          "[/Timelock.sol#L1327-L1337](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L1327-L1337)"
+        ],
+        "description": "The Timelock implements the ERC-777 `tokensReceived` hook but never registers with the ERC-1820 registry. Any attempt to send ERC-777 tokens using strict mechanisms will revert.",
+        "recommendation": "Register the interface in the constructor via the ERC-1820 registry or strip out the dead code."
+      },
+      {
+        "id": "I-19",
+        "title": "`checkCalldata` never constrains total calldata length, leaving tail bytes unvalidated",
+        "severity": "INFO",
+        "locations": [
+          "src/Timelock.sol:475-504",
+          "src/BytesHelper.sol:35-58",
+          "src/Timelock.sol:715-726"
+        ],
+        "description": "The calldata verifier checks registered slices but ignores unconfigured lengths, allowing hot signers to append arbitrary tail data to a payload. This allows circumvention of parameter constraints containing dynamically sized ABI arguments.",
+        "recommendation": "Commit to the total calldata length per selector during whitelist configuration and validate it during execution."
+      },
+      {
+        "id": "I-20",
+        "title": "Timelock's self-held `DEFAULT_ADMIN_ROLE` can mint and populate unlimited new roles",
+        "severity": "INFO",
+        "locations": [
+          "[/Timelock.sol#L763-L769](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L763-L769)",
+          "src/Timelock.sol:301-308",
+          "docs/TESTING.md:26"
+        ],
+        "description": "The implementation does not strictly limit valid roles to `HOT_SIGNER_ROLE` and `DEFAULT_ADMIN_ROLE`. Proposals can invoke `grantRole` to mint unverified custom roles, which directly contradicts formal verification documentation.",
+        "recommendation": "Restrict `grantRole` explicitly to predefined roles or update documentation."
+      },
+      {
+        "id": "I-21",
+        "title": "`revokeHotSigner()` NatSpec claims the timelock may call it, but the modifier is `onlySafe`",
+        "severity": "INFO",
+        "locations": [
+          "[/Timelock.sol#L799-L804](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L799-L804)"
+        ],
+        "description": "NatSpec documents that the Timelock can call `revokeHotSigner`, but the `onlySafe` modifier restricts callers explicitly to the Safe instance. Proposals targeting this endpoint will fail strictly at execution time.",
+        "recommendation": "Modify the access control to support `address(this)` or correct the NatSpec."
+      },
+      {
+        "id": "I-22",
+        "title": "Caller-supplied `DeploymentParams.salt` is unconditionally discarded",
+        "severity": "INFO",
+        "locations": [
+          "src/InstanceDeployer.sol:165-182",
+          "[/AddressCalculation.sol#L89-L107](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/views/AddressCalculation.sol#L89-L107)",
+          "[/TimelockFactory.sol#L6-L18](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/TimelockFactory.sol#L6-L18)",
+          "[/EDGECASES.md#L49-L59](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/docs/EDGECASES.md#L49-L59)",
+          "[/KNOWN_ISSUES.md#L13](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/docs/KNOWN_ISSUES.md#L13)"
+        ],
+        "description": "Despite documentation citing `salt` as a mutable vector for producing unique configurations, the supplied salt is overwritten by hashing system parameters. Users cannot natively spawn identical configuration sets in distinct wallets.",
+        "recommendation": "Embed the custom `salt` into the `creationSalt` derivation preimage."
+      },
+      {
+        "id": "I-23",
+        "title": "Hot-signer executions are logged with a zero operation id and no signer identity",
+        "severity": "INFO",
+        "locations": [
+          "src/Timelock.sol:188-194",
+          "[/Timelock.sol#L715-L726](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L715-L726)",
+          "src/Timelock.sol:733-755"
+        ],
+        "description": "The fast path `executeWhitelisted` logs executions mimicking regular timelocked proposals with a null ID while neglecting to identify the hot signer triggering the payload. This breaks on-chain attribution.",
+        "recommendation": "Implement a dedicated `WhitelistedCallExecuted` event capturing the specific `msg.sender`."
+      },
+      {
+        "id": "I-24",
+        "title": "`_execute()` discards the callee's revert data, replacing downstream failures with an opaque string",
+        "severity": "INFO",
+        "locations": [
+          "[/Timelock.sol#L1021-L1026](https://github.com/solidity-labs-io/kleidi/blob/0d72b6cb5725c1380212dc76257da96fcfacf22f/src/Timelock.sol#L1021-L1026)",
+          "src/Timelock.sol:715-726",
+          "src/Timelock.sol:733-755",
+          "src/Timelock.sol:589-609",
+          "src/Timelock.sol:621-650"
+        ],
+        "description": "`_execute` intentionally masks standard EVM revert payloads produced by target protocols beneath a hardcoded string `Timelock: underlying transaction reverted`, making debugging practically impossible.",
+        "recommendation": "Surface the underlying protocol error using inline assembly (`revert(add(returndata, 0x20), mload(returndata))`)"
+      }
+    ]
+  }
+}

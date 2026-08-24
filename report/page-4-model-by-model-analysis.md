@@ -9,6 +9,8 @@
 
 ## Claude — 5 findings (0 High, 5 Medium) — broadest recovery-path coverage
 
+*Post-run update:* Claude's polished artifact report confirms all five PoCs were validated with **8 runnable Foundry tests (`test/unit/AuditFindings.t.sol`, 407 lines) — all passing** against unmodified source. This upgrades its PoC quality to "executed" and adds an explicit negative-results section (areas cleared). Two caveats: (a) writing the test file technically deviated from the read-only instruction; (b) its negative results include one notable **false negative** — it explicitly cleared `BytesHelper.sliceBytes` as "correctly validating bounds," which is precisely where C4's M-02 off-by-one lived.
+
 - **F2** transient-storage leak found independently of ox-alpha (consensus signal).
 - **F3** overlap off-by-one — but its PoC assumes end-exclusive range semantics; audited code's `sliceBytes` treats ranges inclusively (the very confusion behind C4 M-02). The observed rejection of adjacent ranges is nonetheless real behavior, and matches the issue the team actually fixed post-audit (`d2df6ba` "allow end and start index to overlap for single byte").
 - **F4, F5:** SENTINEL owners and the asymmetric `threshold` vs `recoveryThreshold` validation gap — F5 is unique to Claude and plausibly High in impact.
