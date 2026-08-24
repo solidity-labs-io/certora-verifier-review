@@ -59,27 +59,25 @@ Union of all reviews after dedup: **12 model issues (F1–F12)** + **2 Certora-e
 
 ### Issue × reviewer coverage matrix
 
-| # | Issue | C4 | Certora | ox-alpha | DeepSeek | GLM 5.2 | GLM 5.3 | Claude | Codex |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | C4-M1 proposal gas griefing | ✓✓ | ◐ (M-01, escalated) | | | | ◐ (F10, escalated) | | |
-| 2 | C4-M2 index `+1` length bug | ✓✓ | | | | | ◐ (F3, same subsystem) | ◐ (F3, same subsystem; FN on sliceBytes) | |
-| 3 | C4-M3 lowered-expiration revert | ✓✓ | | ◐ (F1, same variable) | | | | | ◐ (F1, same variable) |
-| 4 | F1 expirationPeriod overflow brick | | ◐ (I-01) | ✓ | | | | | ✓ |
-| 5 | F2 transient storage leak | | ◐ (L-05) | ✓ | | | | ✓ | |
-| 6 | F3 overlap strict-inequality off-by-one | | ◐ (L-02) | | | | ✓ | ✓ | |
-| 7 | F4 SENTINEL owners brick recovery | | ◐ (L-09) | | | | ✓ | ✓ | ✓ |
-| 8 | F5 zero `recoveryThreshold` | | | | | | | ✓ | |
-| 9 | F6 initialize front-run window | | | | | | | ✓ | |
-| 10 | F7 unpinned Morpho markets | | ◐ (L-01) | | ✓ | | | | |
-| 11 | F8 wildcard cETH mint freeze | | | | ✓ | | | | |
-| 12 | F9 single-owner threshold bypass | | ◐ (I-05) | | ✓ | | | | |
-| 13 | F10 guardian pause() OOG kill | | ✓ (M-01) | | | | ✓ | | |
-| 14 | F11 recovery delay pre-elapse | | | | | | ✓ | | ✓ |
-| 15 | F12 survivor-collision recovery brick | | ◐ (L-07) | | | | ✓ | | |
-| 16 | B-M2 swap-and-pop desync | | ✓ | | | | | | |
-| 17 | B-M3 spell mutual non-exclusivity | | ✓ | | | | | | |
+Legend: **✓** = found · **✓✓** = found with duplicates · **◐** = partial (adjacent/subsystem match or corroboration entry) · omitted reviewer = missed.
 
-Legend: ✓ = found · ✓✓ = found with duplicates · ◐ = partial (adjacent/subsystem match or corroboration entry) · blank = missed.
+1. **C4-M1 proposal gas griefing** — C4 ✓✓ · Certora ◐ (M-01, escalated) · GLM 5.3 ◐ (F10, escalated)
+2. **C4-M2 index `+1` length bug** — C4 ✓✓ · GLM 5.3 ◐ (F3, same subsystem) · Claude ◐ (F3, same subsystem; FN on sliceBytes)
+3. **C4-M3 lowered-expiration revert** — C4 ✓✓ · ox-alpha ◐ (F1, same variable) · Codex ◐ (F1, same variable)
+4. **F1 expirationPeriod overflow brick** — ox-alpha ✓ · Codex ✓ · Certora ◐ (I-01)
+5. **F2 transient storage leak** — ox-alpha ✓ · Claude ✓ · Certora ◐ (L-05)
+6. **F3 overlap strict-inequality off-by-one** — GLM 5.3 ✓ · Claude ✓ · Certora ◐ (L-02)
+7. **F4 SENTINEL owners brick recovery** — GLM 5.3 ✓ · Claude ✓ · Codex ✓ · Certora ◐ (L-09)
+8. **F5 zero `recoveryThreshold`** — Claude ✓
+9. **F6 initialize front-run window** — Claude ✓
+10. **F7 unpinned Morpho markets** — DeepSeek ✓ · Certora ◐ (L-01)
+11. **F8 wildcard cETH mint freeze** — DeepSeek ✓
+12. **F9 single-owner threshold bypass** — DeepSeek ✓ · Certora ◐ (I-05)
+13. **F10 guardian pause() OOG kill** — GLM 5.3 ✓ · Certora ✓ (M-01)
+14. **F11 recovery delay pre-elapse** — GLM 5.3 ✓ · Codex ✓
+15. **F12 survivor-collision recovery brick** — GLM 5.3 ✓ · Certora ◐ (L-07)
+16. **B-M2 swap-and-pop desync** — Certora ✓
+17. **B-M3 spell mutual non-exclusivity** — Certora ✓
 
 ### Scoreboard
 
