@@ -30,4 +30,4 @@ Independent full-audit baseline produced by Certora's auditing pipeline against 
 
 ## Why it matters for this evaluation
 
-The baseline provides a third reference frame alongside the six model outputs and the historical Code4rena findings: every model claim that also appears in this independently produced report is corroborated evidence rather than an isolated assertion. Cross-reference table in [`../../report/page-5-scoring-and-conclusions.md`](../../report/page-5-scoring-and-conclusions.md).
+The baseline provides a third reference frame alongside the six model outputs and the historical Code4rena findings: every model claim that also appears in this independently produced report is corroborated evidence rather than an isolated assertion. Cross-reference table in [`REPORT.md`](../../REPORT.md).

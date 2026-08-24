@@ -15,7 +15,7 @@ Three pages: master comparison table (all 8 reviewers) · per-reviewer profiles 
 | [DeepSeek v4](findings/deepseek-v4.md) | 3 | 0 | 3 |
 | [GLM 5.2](findings/glm-5.2.md) | **0** | 0 | 0 |
 | [GLM 5.3](findings/glm-5.3.md) | 5 | 1 | 4 |
-| [Codex](findings/codex.md) | 3 | 0 | 3 |
+| [Codex](findings/codex.md) | 4 | 0 | 4 |
 
 (DeepSeek's Morpho finding was reported High; review re-rated it Medium — see REPORT.md.)
 
