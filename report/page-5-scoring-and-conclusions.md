@@ -24,6 +24,30 @@ Ranked by assessed impact:
 
 Caveat: these are candidate misses pending sponsor/judge validation; several depend on misconfiguration or multicall patterns C4's judge might rate Low.
 
+## Comparison with the Certora automated audit review
+
+The Certora baseline (2026-08-22, same commit, independent automated pipeline: 0 High / 3 Medium / 10 Low / 24 Info — see `primary/certora-baseline/`) provides a second modern reference frame. Cross-referencing every baseline entry against the model outputs:
+
+| Baseline finding | Sev | Matching model result | Agreement |
+| --- | --- | --- | --- |
+| M-01 Unbounded `pause()` loop → guardian permanently disabled by gas griefing | M | **GLM 5.3 F10** (rated **High**) | Exact match; models rated higher |
+| M-02 Swap-and-pop removal indices desync queued revocations → wrong check deleted | M | — | **Missed by all six models** |
+| M-03 Recovery spells mutually non-exclusive; recovered owners cannot disable other spells | M | — (F11 delay-pre-elapse is an adjacent but distinct defect) | **Missed by all six models** |
+| L-01 Morpho documented policies/configs allow asset drain | L | DeepSeek v4 F7 (rated **High**) | Match; models rated higher |
+| L-02 Strict inequality blocks contiguous calldata checks | L | Claude F3 + GLM 5.3 F3 (rated Medium) | Exact match |
+| L-05 Transient storage pollution breaks batch deploy composability | L | ox-alpha F2 + Claude F2 (rated Medium) | Exact match |
+| L-07 Recovery fails when first replacement owner is the retained current owner | L | GLM 5.3 F12 (rated Medium) | Exact match |
+| L-09 Inadequate owner-address validation bricks wallets | L | Claude/GLM 5.3/OpenAI F4 (SENTINEL owners, rated Medium) | Partial match |
+| I-01 Unbounded delays/expiration periods → arithmetic overflow brick | I | ox-alpha F1 + OpenAI F2 (rated Medium) | Exact match |
+| I-05 Single-owner setups silently bypass requested threshold | I | DeepSeek v4 F9 (rated Medium) | Exact match |
+
+### Takeaways
+
+1. **7 of the models' 13 distinct findings are independently corroborated by the baseline**, including both of the run's most consequential claims (guardian-brake neutralization, Morpho market drain). Zero model findings were flatly contradicted by the baseline.
+2. **Systematic severity divergence:** for every corroborated issue the baseline rates one-to-two notches lower than the models (High→M/L, Medium→L/I). The models optimize for impact narratives; the calibrated pipeline discounts exploitability preconditions.
+3. **The two baseline Mediums that every model missed share a profile:** stateful lifecycle bugs (queued-revocation index drift, multi-spell interaction) that span multiple transactions or contracts — consistent with single-pass point-read audits being weakest at cross-procedure state reasoning.
+4. **Model-only findings still standing unchallenged:** zero `recoveryThreshold` (Claude F5), wildcard cETH mint freeze (DeepSeek F8), initialize front-run window (Claude F6), and recovery-delay pre-elapse (GLM 5.3/OpenAI F11) appear in neither C4 nor the baseline — either genuinely novel or over-rated by models; all warrant sponsor triage.
+
 ## Reliability observations
 
 - **Consensus works:** both multi-model findings (F1, F2, F3, F4, F11) held up under cross-reading; no multi-model finding was an obvious false positive.

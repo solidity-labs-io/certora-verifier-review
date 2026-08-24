@@ -24,7 +24,3 @@ After deduplication, the six models surfaced **13 distinct issues**: 11 assessed
 3. **The recovery path is under-defended in ways C4 missed.** Four distinct novel issues: transient-storage duplicate-owner leak across batched spell creations (ox-alpha, Claude); SENTINEL/invalid owners accepted at factory level bricking recovery forever (Claude, GLM 5.3, OpenAI); zero `recoveryThreshold` accepted enabling signature-free owner rotation (Claude); and recovery delay elapsing before module enablement (GLM 5.3, OpenAI).
 4. **One model failed completely.** GLM 5.2 returned zero findings despite claiming full coverage.
 5. **No model exactly reproduced any of the three C4 Mediums as written**, but near-neighbors were found for all three — see Page 5.
-
-## Economic observation
-
-DeepSeek v4 was the only model to attack the whitelist configuration itself (unpinned Morpho markets, wildcard Compound `mint`) rather than only contract logic — the highest-severity single finding of the run (compromised hot signer drains all collateral through a permissionlessly created market).
