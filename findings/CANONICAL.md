@@ -1,6 +1,6 @@
 # Canonical Findings Index — Kleidi Pre-Audit Evaluation
 
-20 distinct issues across 9 independent reviewers (Code4rena, Certora, Claude, Codex, DeepSeek v4, GLM 5.2, GLM 5.3, GLM 5.3 Flash, v12) after deduplication.
+20 distinct valid issues across 9 independent reviewers (Code4rena, Certora, v12, Claude, Codex, DeepSeek v4, GLM 5.2, GLM 5.3, GLM 5.3 Flash) after deduplication.
 
 **Severity methodology:** Certora baseline = reference calibration. C4 judge rulings = binding where available. Multi-auditor LLM consensus de-inflated ~1 notch per observed severity drift. Single-LLM findings accepted at reported severity unless contradicted.
 
@@ -10,13 +10,13 @@
 
 | ID | Severity | Title | Component | Old IDs | Auditors (original severity) |
 |----|----------|-------|-----------|---------|------------------------------|
-| KLD-001 | **High** | Guardian pause permanently killable via unbounded proposal flooding | Timelock / ConfigurablePause | C4-M1, F10, Certora M-01 | C4 (M), Certora (M), GLM 5.3 (H), v12 (M) |
+| KLD-001 | **High** | Guardian pause permanently killable via unbounded proposal flooding | Timelock / ConfigurablePause | C4-M1, F10, Certora M-01 | C4 (M), Certora (M), v12 (M), GLM 5.3 (H) |
 | KLD-002 | Medium | Index +1 length bug in sliceBytes | BytesHelper / Timelock | C4-M2 | C4 (M) |
 | KLD-003 | Medium | _afterCall re-checks with post-execution expirationPeriod | Timelock | C4-M3 | C4 (M), GLM 5.2 (M), v12 (M) |
 | KLD-004 | Medium | Swap-and-pop revocation desync | Timelock | B-M2 | Certora (M) |
 | KLD-005 | Medium | Recovery spell mutual non-exclusivity | RecoverySpell | B-M3 | Certora (M) |
-| KLD-006 | Medium | expirationPeriod overflow permanently bricks governance | Timelock | F1 | Certora (I), GLM 5.3 Flash (M), Codex (M), v12 (M) |
-| KLD-007 | Medium | Off-by-one in calldata-check overlap rejects adjacent ranges | Timelock | F3 | Certora (L), Claude (M), GLM 5.3 (M), v12 (M) |
+| KLD-006 | Medium | expirationPeriod overflow permanently bricks governance | Timelock | F1 | Certora (I), v12 (M), Codex (M), GLM 5.3 Flash (M) |
+| KLD-007 | Medium | Off-by-one in calldata-check overlap rejects adjacent ranges | Timelock | F3 | Certora (L), v12 (M), Claude (M), GLM 5.3 (M) |
 | KLD-008 | Medium | SENTINEL/Safe-address owners permanently brick recovery | RecoverySpellFactory | F4 | Certora (L), Claude (M), GLM 5.3 (M), Codex (M) |
 | KLD-009 | Medium | Zero recoveryThreshold enables unauthorized recovery | RecoverySpellFactory | F5 | Claude (M) |
 | KLD-010 | Medium | Wildcard cETH mint + unchecked value freezes native balance | Timelock (config) | F8 | DeepSeek v4 (M) |
@@ -37,34 +37,34 @@
 
 Legend: **+** = found · **~** = partial/adjacent · **.** = missed
 
-| ID | Severity | C4 | Certora | Claude | Codex | DeepSeek v4 | GLM 5.2 | GLM 5.3 | GLM 5.3 Flash | v12 |
+| ID | Severity | C4 | Certora | v12 | Claude | Codex | DeepSeek v4 | GLM 5.2 | GLM 5.3 | GLM 5.3 Flash |
 |----|----------|-----|---------|--------|-------|----------|---------|---------|----------|-----|
-| KLD-001 | High | + | + | . | . | . | . | + | . | + |
+| KLD-001 | High | + | + | + | . | . | . | . | + | . |
 | KLD-002 | Med | + | . | . | . | . | . | . | . | . |
-| KLD-003 | Med | + | . | . | . | . | + | . | . | + |
+| KLD-003 | Med | + | . | + | . | . | . | + | . | . |
 | KLD-004 | Med | . | + | . | . | . | . | . | . | . |
 | KLD-005 | Med | . | + | . | . | . | . | . | . | . |
-| KLD-006 | Med | . | ~ | . | + | . | . | . | + | + |
-| KLD-007 | Med | . | ~ | + | . | . | . | + | . | + |
-| KLD-008 | Med | . | ~ | + | + | . | . | + | . | . |
-| KLD-009 | Med | . | . | + | . | . | . | . | . | . |
-| KLD-010 | Med | . | . | . | . | + | . | . | . | . |
-| KLD-012 | Med | . | . | . | + | . | . | + | . | . |
-| KLD-013 | Med | . | ~ | . | . | . | . | + | . | . |
-| KLD-014 | Med | . | ~ | . | + | . | . | . | . | . |
-| KLD-015 | Low | . | + | + | . | . | . | . | + | . |
-| KLD-016 | Low | . | . | + | . | . | + | . | . | . |
-| KLD-017 | Low | . | ~ | . | . | + | . | . | . | . |
-| KLD-018 | Low | . | . | . | . | . | . | . | . | + |
-| KLD-019 | Low | . | . | . | . | . | . | . | . | + |
-| KLD-020 | Info | . | . | . | . | . | . | . | . | + |
-| KLD-021 | Info | . | . | . | . | . | . | . | . | + |
-| **Total (+ only)** | | **3** | **4** | **5** | **4** | **2** | **2** | **5** | **2** | **8** |
-| **Mapped (+/~)** | | **3** | **10** | **5** | **4** | **2** | **2** | **5** | **2** | **8** |
+| KLD-006 | Med | . | ~ | + | . | + | . | . | . | + |
+| KLD-007 | Med | . | ~ | + | + | . | . | . | + | . |
+| KLD-008 | Med | . | ~ | . | + | + | . | . | + | . |
+| KLD-009 | Med | . | . | . | + | . | . | . | . | . |
+| KLD-010 | Med | . | . | . | . | . | + | . | . | . |
+| KLD-012 | Med | . | . | . | . | + | . | . | + | . |
+| KLD-013 | Med | . | ~ | . | . | . | . | . | + | . |
+| KLD-014 | Med | . | ~ | . | . | + | . | . | . | . |
+| KLD-015 | Low | . | + | . | + | . | . | . | . | + |
+| KLD-016 | Low | . | . | . | + | . | . | + | . | . |
+| KLD-017 | Low | . | ~ | . | . | . | + | . | . | . |
+| KLD-018 | Low | . | . | + | . | . | . | . | . | . |
+| KLD-019 | Low | . | . | + | . | . | . | . | . | . |
+| KLD-020 | Info | . | . | + | . | . | . | . | . | . |
+| KLD-021 | Info | . | . | + | . | . | . | . | . | . |
+| **Total (+ only)** | | **3** | **4** | **8** | **5** | **4** | **2** | **2** | **5** | **2** |
+| **Mapped (+/~)** | | **3** | **10** | **8** | **5** | **4** | **2** | **2** | **5** | **2** |
 
-**Recall (exact matches only):** C4 3/20 (15%) · Certora 4/20 (20%) · Claude 5/20 (25%) · Codex 4/20 (20%) · DeepSeek v4 2/20 (10%) · GLM 5.2 2/20 (10%) · GLM 5.3 5/20 (25%) · GLM 5.3 Flash 2/20 (10%) · v12 8/20 (40%)
+**Recall (exact matches only):** C4 3/20 (15%) · Certora 4/20 (20%) · v12 8/20 (40%) · Claude 5/20 (25%) · Codex 4/20 (20%) · DeepSeek v4 2/20 (10%) · GLM 5.2 2/20 (10%) · GLM 5.3 5/20 (25%) · GLM 5.3 Flash 2/20 (10%)
 
-**Mapped coverage (+ or ~):** C4 3/20 (15%) · Certora 10/20 (50%) · Claude 5/20 (25%) · Codex 4/20 (20%) · DeepSeek v4 2/20 (10%) · GLM 5.2 2/20 (10%) · GLM 5.3 5/20 (25%) · GLM 5.3 Flash 2/20 (10%) · v12 8/20 (40%)
+**Mapped coverage (+ or ~):** C4 3/20 (15%) · Certora 10/20 (50%) · v12 8/20 (40%) · Claude 5/20 (25%) · Codex 4/20 (20%) · DeepSeek v4 2/20 (10%) · GLM 5.2 2/20 (10%) · GLM 5.3 5/20 (25%) · GLM 5.3 Flash 2/20 (10%)
 
 ---
 
@@ -90,6 +90,18 @@ Legend: **+** = found · **~** = partial/adjacent · **.** = missed
 | I-01 | KLD-006 | expirationPeriod overflow; rated Informational |
 | I-05 | KLD-017 | 1-of-1 threshold; partial match |
 | L-06 | KLD-014 | Failed module calls; partial match |
+
+### v12
+| Local finding (ticket) | Canonical |
+|------------------------|-----------|
+| Paused Batch Continues (#251886) | KLD-019 |
+| Zero Guardian (#251920) | KLD-018 |
+| Adjacent ranges rejected (#251931) | KLD-007 |
+| Expiry changes (#251933) | KLD-003 |
+| Unbounded proposal purge (#251934) | KLD-001 |
+| Unbounded expirationPeriod (#251936) | KLD-006 |
+| Hot signers not bound (#251939) | KLD-020 |
+| Pause predicate sentinel (#251942) | KLD-021 |
 
 ### Claude
 | Local finding | Canonical |
@@ -134,15 +146,3 @@ Legend: **+** = found · **~** = partial/adjacent · **.** = missed
 |---------------|-----------|
 | expirationPeriod overflow | KLD-006 |
 | Transient storage leak | KLD-015 |
-
-### v12
-| Local finding (ticket) | Canonical |
-|------------------------|-----------|
-| Paused Batch Continues (#251886) | KLD-019 |
-| Zero Guardian (#251920) | KLD-018 |
-| Adjacent ranges rejected (#251931) | KLD-007 |
-| Expiry changes (#251933) | KLD-003 |
-| Unbounded proposal purge (#251934) | KLD-001 |
-| Unbounded expirationPeriod (#251936) | KLD-006 |
-| Hot signers not bound (#251939) | KLD-020 |
-| Pause predicate sentinel (#251942) | KLD-021 |

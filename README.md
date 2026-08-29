@@ -16,13 +16,13 @@ Master cross-reference: every unique issue gets a `KLD-NNN` identifier and norma
 | --- | --- | --- | --- | --- |
 | [Code4rena](primary/c4-report/) | Human contest | 14 | 0 | 3 |
 | [Certora](primary/certora-baseline/) | Automated pipeline | 37 | 0 | 3 |
+| [v12](findings/v12.md) | LLM | 8 | 0 | 8 |
 | [GLM 5.3 Flash](findings/glm-5.3-flash.md) | LLM | 2 | 0 | 2 |
 | [Claude](findings/claude.md) | LLM | 5 | 0 | 5 |
 | [DeepSeek v4](findings/deepseek-v4.md) | LLM | 2 | 0 | 2 |
 | [GLM 5.2](findings/glm-5.2.md) | LLM | 2 | 0 | 2 |
 | [GLM 5.3](findings/glm-5.3.md) | LLM | 5 | 1 | 4 |
 | [Codex](findings/codex.md) | LLM | 4 | 0 | 4 |
-| [v12](findings/v12.md) | LLM | 8 | 0 | 8 |
 
 ## Primary documents (`primary/`)
 

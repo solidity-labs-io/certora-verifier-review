@@ -2,7 +2,7 @@
 
 Nine independent reviews of the same snapshot — Kleidi at `0d72b6cb5725c1380212dc76257da96fcfacf22f` (2024-10-17, byte-identical `src/` to the C4 contest repo): one human competition, one automated pipeline, seven LLM agents. This is the closing 3-page summary; raw outputs are under `findings/`, evidence under `primary/`, canonical cross-reference at `findings/CANONICAL.md`.
 
-**Reviewers:** Code4rena (C4, Oct 2024) · Certora baseline (Aug 2026) · GLM 5.3 Flash · DeepSeek v4 · GLM 5.2 · GLM 5.3 · Claude · Codex · v12
+**Reviewers:** Code4rena (C4, Oct 2024) · Certora baseline (Aug 2026) · v12 · GLM 5.3 Flash · DeepSeek v4 · GLM 5.2 · GLM 5.3 · Claude · Codex
 
 ---
 
@@ -12,13 +12,13 @@ Nine independent reviews of the same snapshot — Kleidi at `0d72b6cb5725c138021
 | --- | --- | --- | --- | --- |
 | **Code4rena** | 0/3/–/– | 3/3 M judge-confirmed | Real PoCs, judge-verified | Calldata index off-by-one (10 duplicate finds) |
 | **Certora** | 0/3/10/24 | 3 M + 7 lower-severity mapped findings | Automated, reproducible | Swap-and-pop desync — sole finder |
+| **v12** | 0/8/–/– | 4 duplicates of known issues, 4 new | Full Foundry PoC per finding | Broadest raw output (8 findings); 4 unique issues not found elsewhere |
 | **GLM 5.3 Flash** | 0/2/–/– | 2/2 baseline-matched | Executed Foundry tests | `expirationPeriod` overflow brick incl. unexecutable repair |
 | **DeepSeek v4** | 0/2/–/– | 2 valid (1 corroborated) | Outlines | Config-level cETH wildcard freeze |
 | **GLM 5.2** | 0/2/–/– | 1 corroborated + 1 LLM-matched | Outlines with PoC code | Expiration-period _afterCall race + initialize front-run |
 | **GLM 5.3** | 1/4/–/– | 4 corroborated | Outlines | Guardian-brake neutralization — the run's only High |
 | **Claude** | 0/5/–/– | 3 corroborated | 8-test Foundry suite | Broadest recovery-path coverage + only attached 8-test suite |
 | **Codex** | 0/4/–/– | 4/4 (3 corroborated) | Concrete inline PoCs | Zero false positives; all findings mapped to canonical issues |
-| **v12** | 0/8/–/– | 4 duplicates of known issues, 4 new | Full Foundry PoC per finding | Broadest raw output (8 findings); 4 unique issues not found elsewhere |
 
 **Reading the table:** *Corroborated* = independently matched by Certora and/or C4.
 
@@ -31,6 +31,9 @@ Three Mediums, all sponsor-confirmed and judge-adjudicated: proposal gas griefin
 
 ### Certora — the automated baseline (Aug 2026)
 Broadest mapped coverage overall (10/20 exact + partials) and the only reviewer to find the swap-and-pop revocation desync (KLD-004) and spell mutual non-exclusivity (KLD-005) — cross-transaction state bugs every other reviewer missed. Its weakness is severity conservatism (zero Highs; rated the pause-OOG brake-kill Medium, the expirationPeriod overflow Informational) and no exploitation narratives. As a calibration reference it is valuable, but overlapping Certora/LLM claims still need manual validity review.
+
+### v12
+Eight findings with full Foundry PoCs — the largest raw output of any single LLM. Four are duplicates of known canonical issues (KLD-001, KLD-003, KLD-006, KLD-007), confirming them independently. Four are new: paused-batch callback escape (KLD-019), zero-guardian deployment (KLD-018), hot-signer lifecycle independence (KLD-020), and pause-predicate sentinel edge case (KLD-021). The new findings range from Low (KLD-018, KLD-019) to Informational (KLD-020, KLD-021) — the latter two are design observations rather than bugs. Severity calibration shows the same +1 notch inflation pattern: all 8 findings were reported Medium, but 4 normalize lower.
 
 ### GLM 5.3 Flash
 #### Harness: Opencode, Manual Prompting
@@ -56,9 +59,6 @@ Five findings spanning the recovery path (transient leak KLD-015, SENTINEL owner
 #### Harness: Codex
 Four findings (expiration overflow KLD-006, SENTINEL owners KLD-008, recovery-delay pre-elapse KLD-012, failed Safe-module calls KLD-014), all valid, with three corroborated by Certora and KLD-012 independently matched by GLM 5.3. The trade-off is breadth: behind GLM 5.3 and Claude in surface coverage, with no whitelist-configuration depth.
 
-### v12
-Eight findings with full Foundry PoCs — the largest raw output of any single LLM. Four are duplicates of known canonical issues (KLD-001, KLD-003, KLD-006, KLD-007), confirming them independently. Four are new: paused-batch callback escape (KLD-019), zero-guardian deployment (KLD-018), hot-signer lifecycle independence (KLD-020), and pause-predicate sentinel edge case (KLD-021). The new findings range from Low (KLD-018, KLD-019) to Informational (KLD-020, KLD-021) — the latter two are design observations rather than bugs. Severity calibration shows the same +1 notch inflation pattern: all 8 findings were reported Medium, but 4 normalize lower.
-
 ---
 
 # Page 3 — Accuracy Analysis
@@ -73,28 +73,28 @@ Union of all reviews after dedup: **20 distinct valid issues** identified by can
 
 Legend: **+** = found · **~** = partial (adjacent/subsystem match or corroboration entry) · **.** = missed.
 
-| KLD | Issue | C4 | Certora | GLM 5.3 Flash | DeepSeek v4 | GLM 5.2 | GLM 5.3 | Claude | Codex | v12 |
+| KLD | Issue | C4 | Certora | v12 | GLM 5.3 Flash | DeepSeek v4 | GLM 5.2 | GLM 5.3 | Claude | Codex |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 001 | Guardian pause permanently killable | + | + | . | . | . | + | . | . | + |
+| 001 | Guardian pause permanently killable | + | + | + | . | . | . | + | . | . |
 | 002 | Index +1 length bug in sliceBytes | + | . | . | . | . | . | . | . | . |
-| 003 | _afterCall re-checks post-execution expirationPeriod | + | . | . | . | + | . | . | . | + |
+| 003 | _afterCall re-checks post-execution expirationPeriod | + | . | + | . | . | + | . | . | . |
 | 004 | Swap-and-pop revocation desync | . | + | . | . | . | . | . | . | . |
 | 005 | Recovery spell mutual non-exclusivity | . | + | . | . | . | . | . | . | . |
-| 006 | expirationPeriod overflow bricks governance | . | ~ | + | . | . | . | . | + | + |
-| 007 | Off-by-one in calldata-check overlap | . | ~ | . | . | . | + | + | . | + |
-| 008 | SENTINEL/Safe-address owners brick recovery | . | ~ | . | . | . | + | + | + | . |
-| 009 | Zero recoveryThreshold unauthorized recovery | . | . | . | . | . | . | + | . | . |
-| 010 | Wildcard cETH mint freezes native balance | . | . | . | + | . | . | . | . | . |
-| 012 | Recovery delay pre-elapses before enablement | . | . | . | . | . | + | . | + | . |
-| 013 | Survivor-collision bricks recovery rotation | . | ~ | . | . | . | + | . | . | . |
-| 014 | Failed Safe-module calls recorded as executed | . | ~ | . | . | . | . | . | + | . |
-| 015 | Transient storage leak in RecoverySpellFactory | . | + | + | . | . | . | + | . | . |
-| 016 | Initialize front-run on direct factory use | . | . | . | . | + | . | + | . | . |
-| 017 | 1-of-1 wallet for single-owner instances | . | ~ | . | + | . | . | . | . | . |
-| 018 | Zero guardian disables pause at deployment | . | . | . | . | . | . | . | . | + |
-| 019 | Paused batch continues after callback | . | . | . | . | . | . | . | . | + |
-| 020 | Hot signers not revoked on owner removal | . | . | . | . | . | . | . | . | + |
-| 021 | Pause predicate ignores zero sentinel | . | . | . | . | . | . | . | . | + |
+| 006 | expirationPeriod overflow bricks governance | . | ~ | + | + | . | . | . | . | + |
+| 007 | Off-by-one in calldata-check overlap | . | ~ | + | . | . | . | + | + | . |
+| 008 | SENTINEL/Safe-address owners brick recovery | . | ~ | . | . | . | . | + | + | + |
+| 009 | Zero recoveryThreshold unauthorized recovery | . | . | . | . | . | . | . | + | . |
+| 010 | Wildcard cETH mint freezes native balance | . | . | . | . | + | . | . | . | . |
+| 012 | Recovery delay pre-elapses before enablement | . | . | . | . | . | . | + | . | + |
+| 013 | Survivor-collision bricks recovery rotation | . | ~ | . | . | . | . | + | . | . |
+| 014 | Failed Safe-module calls recorded as executed | . | ~ | . | . | . | . | . | . | + |
+| 015 | Transient storage leak in RecoverySpellFactory | . | + | . | + | . | . | . | + | . |
+| 016 | Initialize front-run on direct factory use | . | . | . | . | . | + | . | + | . |
+| 017 | 1-of-1 wallet for single-owner instances | . | ~ | . | . | + | . | . | . | . |
+| 018 | Zero guardian disables pause at deployment | . | . | + | . | . | . | . | . | . |
+| 019 | Paused batch continues after callback | . | . | + | . | . | . | . | . | . |
+| 020 | Hot signers not revoked on owner removal | . | . | + | . | . | . | . | . | . |
+| 021 | Pause predicate ignores zero sentinel | . | . | + | . | . | . | . | . | . |
 
 ### Scoreboard
 
