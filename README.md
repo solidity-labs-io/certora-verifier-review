@@ -4,7 +4,7 @@ Seven frontier LLM agents independently audited the Kleidi codebase at its exact
 
 ## **Read the final report: [REPORT.md](REPORT.md)**
 
-Three pages: master comparison table (all 9 reviewers) · per-reviewer profiles · accuracy analysis with the 21-issue canonical set, coverage matrix, and verdict.
+Three pages: master comparison table (all 9 reviewers) · per-reviewer profiles · accuracy analysis with the 20-issue canonical set, coverage matrix, and verdict.
 
 ## **Canonical findings index: [findings/CANONICAL.md](findings/CANONICAL.md)**
 
@@ -18,7 +18,7 @@ Master cross-reference: every unique issue gets a `KLD-NNN` identifier and norma
 | [Certora](primary/certora-baseline/) | Automated pipeline | 37 | 0 | 3 |
 | [GLM 5.3 Flash](findings/glm-5.3-flash.md) | LLM | 2 | 0 | 2 |
 | [Claude](findings/claude.md) | LLM | 5 | 0 | 5 |
-| [DeepSeek v4](findings/deepseek-v4.md) | LLM | 3 | 0 | 3 |
+| [DeepSeek v4](findings/deepseek-v4.md) | LLM | 2 | 0 | 2 |
 | [GLM 5.2](findings/glm-5.2.md) | LLM | 2 | 0 | 2 |
 | [GLM 5.3](findings/glm-5.3.md) | LLM | 5 | 1 | 4 |
 | [Codex](findings/codex.md) | LLM | 4 | 0 | 4 |
@@ -30,6 +30,6 @@ Master cross-reference: every unique issue gets a `KLD-NNN` identifier and norma
 - [`PROVENANCE.md`](primary/PROVENANCE.md) — commit hashes, snapshot verification against the C4 contest repo, audit window
 - [`c4-report/`](primary/c4-report/) — Code4rena October 2024 findings (0H/3M + low/QA)
 - [`certora-baseline/`](primary/certora-baseline/README.md) — independent Certora audit of the same commit (0H/3M/10L/24I)
-- [`poc/claude/`](primary/poc/claude/) — Claude's executed PoC test suite (8 passing tests)
+- [`poc/claude/`](primary/poc/claude/) — Claude's 8-test Foundry PoC suite
 - [`recon/`](primary/recon/) — sponsor recon PDF available to models during runs
 - [`AUDIT_PROMPT.md`](primary/AUDIT_PROMPT.md) — the identical task prompt given to all models
