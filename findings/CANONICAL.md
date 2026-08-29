@@ -1,6 +1,6 @@
 # Canonical Findings Index — Kleidi Pre-Audit Evaluation
 
-21 distinct issues across 8 independent reviewers (Code4rena, Certora, Claude, Codex, DeepSeek v4, GLM 5.2, GLM 5.3, GLM 5.3 Flash, v12) after deduplication.
+20 distinct issues across 9 independent reviewers (Code4rena, Certora, Claude, Codex, DeepSeek v4, GLM 5.2, GLM 5.3, GLM 5.3 Flash, v12) after deduplication.
 
 **Severity methodology:** Certora baseline = reference calibration. C4 judge rulings = binding where available. Multi-auditor LLM consensus de-inflated ~1 notch per observed severity drift. Single-LLM findings accepted at reported severity unless contradicted.
 
@@ -19,14 +19,13 @@
 | KLD-007 | Medium | Off-by-one in calldata-check overlap rejects adjacent ranges | Timelock | F3 | Certora (L), Claude (M), GLM 5.3 (M), v12 (M) |
 | KLD-008 | Medium | SENTINEL/Safe-address owners permanently brick recovery | RecoverySpellFactory | F4 | Certora (L), Claude (M), GLM 5.3 (M), Codex (M) |
 | KLD-009 | Medium | Zero recoveryThreshold enables unauthorized recovery | RecoverySpellFactory | F5 | Claude (M) |
-| KLD-010 | Medium | Wildcard cETH mint + unchecked value freezes native balance | Timelock (config) | F8 | DeepSeek (M) |
-| KLD-011 | Medium | Unpinned Morpho markets let hot signer drain via attacker market | Timelock (config) | F7 | Certora (L), DeepSeek (H→M) |
+| KLD-010 | Medium | Wildcard cETH mint + unchecked value freezes native balance | Timelock (config) | F8 | DeepSeek v4 (M) |
 | KLD-012 | Medium | Recovery delay pre-elapses before module enablement | RecoverySpell / InstanceDeployer | F11 | GLM 5.3 (M), Codex (M) |
 | KLD-013 | Medium | Survivor-collision permanently bricks recovery rotation | RecoverySpell | F12 | Certora (L), GLM 5.3 (M) |
 | KLD-014 | Medium | Failed Safe-module calls silently recorded as executed | Timelock | F13 | Certora (L), Codex (M) |
 | KLD-015 | Low | Transient storage leak in RecoverySpellFactory | RecoverySpellFactory | F2 | Certora (L), Claude (M), GLM 5.3 Flash (M) |
 | KLD-016 | Low | Initialize front-run on direct TimelockFactory use | Timelock / TimelockFactory | F6 | Claude (M), GLM 5.2 (M) |
-| KLD-017 | Low | 1-of-1 wallet silently deployed for single-owner instances | InstanceDeployer | F9 | Certora (I), DeepSeek (M) |
+| KLD-017 | Low | 1-of-1 wallet silently deployed for single-owner instances | InstanceDeployer | F9 | Certora (I), DeepSeek v4 (M) |
 | KLD-018 | Low | Zero guardian disables emergency pause at deployment | Timelock / ConfigurablePause | — | v12 (M) |
 | KLD-019 | Low | Paused batch continues after callback-triggered pause | Timelock | — | v12 (M) |
 | KLD-020 | Info | Hot signers not revoked when Safe owner removed | Timelock | — | v12 (M) |
@@ -38,10 +37,10 @@
 
 Legend: **+** = found · **~** = partial/adjacent · **.** = missed
 
-| ID | Severity | C4 | Certora | Claude | Codex | DeepSeek | GLM 5.2 | GLM 5.3 | GLM 5.3 Flash | v12 |
+| ID | Severity | C4 | Certora | Claude | Codex | DeepSeek v4 | GLM 5.2 | GLM 5.3 | GLM 5.3 Flash | v12 |
 |----|----------|-----|---------|--------|-------|----------|---------|---------|----------|-----|
 | KLD-001 | High | + | + | . | . | . | . | + | . | + |
-| KLD-002 | Med | + | . | ~ | . | . | . | ~ | . | . |
+| KLD-002 | Med | + | . | . | . | . | . | . | . | . |
 | KLD-003 | Med | + | . | . | . | . | + | . | . | + |
 | KLD-004 | Med | . | + | . | . | . | . | . | . | . |
 | KLD-005 | Med | . | + | . | . | . | . | . | . | . |
@@ -50,7 +49,6 @@ Legend: **+** = found · **~** = partial/adjacent · **.** = missed
 | KLD-008 | Med | . | ~ | + | + | . | . | + | . | . |
 | KLD-009 | Med | . | . | + | . | . | . | . | . | . |
 | KLD-010 | Med | . | . | . | . | + | . | . | . | . |
-| KLD-011 | Med | . | ~ | . | . | + | . | . | . | . |
 | KLD-012 | Med | . | . | . | + | . | . | + | . | . |
 | KLD-013 | Med | . | ~ | . | . | . | . | + | . | . |
 | KLD-014 | Med | . | ~ | . | + | . | . | . | . | . |
@@ -61,9 +59,12 @@ Legend: **+** = found · **~** = partial/adjacent · **.** = missed
 | KLD-019 | Low | . | . | . | . | . | . | . | . | + |
 | KLD-020 | Info | . | . | . | . | . | . | . | . | + |
 | KLD-021 | Info | . | . | . | . | . | . | . | . | + |
-| **Total** | | **3** | **8** | **5** | **4** | **3** | **2** | **5** | **2** | **8** |
+| **Total (+ only)** | | **3** | **4** | **5** | **4** | **2** | **2** | **5** | **2** | **8** |
+| **Mapped (+/~)** | | **3** | **10** | **5** | **4** | **2** | **2** | **5** | **2** | **8** |
 
-**Recall (exact matches only):** C4 3/21 (14%) · Certora 8/21 (38%) · Claude 5/21 (24%) · Codex 4/21 (19%) · DeepSeek 3/21 (14%) · GLM 5.2 2/21 (10%) · GLM 5.3 5/21 (24%) · GLM 5.3 Flash 2/21 (10%) · v12 8/21 (38%)
+**Recall (exact matches only):** C4 3/20 (15%) · Certora 4/20 (20%) · Claude 5/20 (25%) · Codex 4/20 (20%) · DeepSeek v4 2/20 (10%) · GLM 5.2 2/20 (10%) · GLM 5.3 5/20 (25%) · GLM 5.3 Flash 2/20 (10%) · v12 8/20 (40%)
+
+**Mapped coverage (+ or ~):** C4 3/20 (15%) · Certora 10/20 (50%) · Claude 5/20 (25%) · Codex 4/20 (20%) · DeepSeek v4 2/20 (10%) · GLM 5.2 2/20 (10%) · GLM 5.3 5/20 (25%) · GLM 5.3 Flash 2/20 (10%) · v12 8/20 (40%)
 
 ---
 
@@ -82,7 +83,6 @@ Legend: **+** = found · **~** = partial/adjacent · **.** = missed
 | M-01 | KLD-001 | Unbounded loop in pause(); rated Medium |
 | M-02 | KLD-004 | Swap-and-pop desync — sole finder |
 | M-03 | KLD-005 | Spell mutual non-exclusivity — sole finder |
-| L-01 | KLD-011 | Morpho market config; partial match |
 | L-02 | KLD-007 | Adjacent range overlap; partial match |
 | L-05 | KLD-015 | Transient storage leak |
 | L-07 | KLD-013 | Survivor collision; partial match |
@@ -113,7 +113,6 @@ Legend: **+** = found · **~** = partial/adjacent · **.** = missed
 |---------------|-----------|
 | Wildcard cETH mint | KLD-010 |
 | 1-of-1 wallet threshold | KLD-017 |
-| Unpinned Morpho markets | KLD-011 |
 
 ### GLM 5.2
 | Local finding | Canonical |
