@@ -1,4 +1,5 @@
 ## [MEDIUM] Off-by-one in _addCalldataCheck overlap validation rejects valid adjacent non-overlapping ranges
+> **KLD-007** · Normalized: Medium
 
 - File: src/Timelock.sol:L1119-L1123
 - Severity: Medium
@@ -36,6 +37,7 @@ function testAdjacentNonOverlappingCalldataChecksRejected() public {
 ```
 
 ## [MEDIUM] RecoverySpellFactory transient storage not cleared between calls causes false duplicate detection
+> **KLD-015** · Normalized: Low
 
 - File: src/RecoverySpellFactory.sol:L59-L71
 - Severity: Medium
@@ -72,6 +74,7 @@ function testTransientStorageLeakBlocksBatchCreation() public {
 ```
 
 ## [MEDIUM] RecoverySpellFactory allows SENTINEL address as owner, creating permanently non-functional recovery spells
+> **KLD-008** · Normalized: Medium
 
 - File: src/RecoverySpellFactory.sol:L135-L137
 - Severity: Medium
@@ -106,6 +109,7 @@ function testSentinelOwnerBricksRecovery() public {
 ```
 
 ## [MEDIUM] Timelock initialize function lacks access control allowing front-running on directly-deployed timelocks
+> **KLD-016** · Normalized: Low
 
 - File: src/Timelock.sol:L316-L329
 - Severity: Medium
@@ -149,6 +153,7 @@ function testAnyoneCanFrontRunInitialize() public {
 ```
 
 ## [MEDIUM] RecoverySpellFactory allows zero recoveryThreshold enabling unauthorized recovery execution
+> **KLD-009** · Normalized: Medium
 
 - File: src/RecoverySpellFactory.sol:L118-L138
 - Severity: Medium

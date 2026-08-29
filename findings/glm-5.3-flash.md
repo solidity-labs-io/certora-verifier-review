@@ -1,4 +1,5 @@
 ## [Medium] Unbounded `expirationPeriod` lets one executed proposal permanently brick all timelock execution
+> **KLD-006** · Normalized: Medium
 - File: src/Timelock.sol:L972-L977 (also src/Timelock.sol:L399-L404, L413-L422)
 - Severity: Medium
 - Confidence: High
@@ -7,6 +8,7 @@
 - PoC: Foundry test (executed, passes): deploy `Timelock(safe=this, 1 days, 30 days, guardian, 10 days, [])`; warp to realistic time; `schedule(exitTarget, 0, "", 0, 2 days)`; read `tsExit = timestamps(exitId)`; `schedule(timelock, 0, abi.encodeWithSelector(Timelock.updateExpirationPeriod.selector, type(uint256).max - tsExit), 0, 1 days)`; warp +1 day, `execute(...)` brick -> succeeds; warp +1 day, `execute(exit...)` -> succeeds; `schedule(this, 0, anyData, 0, 1 days)`, warp past ready/expiry -> `execute(...)` reverts `Panic(0x11)`, `cleanup(id)` reverts `Panic(0x11)`, and executing a freshly scheduled `updateExpirationPeriod(30 days)` repair also reverts `Panic(0x11)`.
 
 ## [Medium] Transient duplicate-owner check leaks across calls, breaking batched RecoverySpell deployments
+> **KLD-015** · Normalized: Low
 - File: src/RecoverySpellFactory.sol:L58-L71
 - Severity: Medium
 - Confidence: High

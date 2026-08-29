@@ -1,4 +1,5 @@
 ## [MEDIUM] Recovery delay can elapse before the module is enabled
+> **KLD-012** · Normalized: Medium
 - File: src/RecoverySpell.sol:L118-L126
 - Severity: Medium
 - Confidence: High
@@ -7,6 +8,7 @@
 - PoC: In a Foundry test, calculate the target Safe, call `SafeProxyFactory.createProxyWithNonce` with the initializer and `creationSalt` used by `InstanceDeployer`, then call `recoveryFactory.createRecoverySpell(salt, recoveryOwners, safe, threshold, recoveryThreshold, delay)` and sign `spell.getDigest()` with `recoveryThreshold` keys. After `vm.warp(block.timestamp + delay + 1)`, prank the legitimate hot signer and call `deployer.createSystemInstance(instance)` with `address(spell)` in `recoverySpells`; without another warp, call `spell.executeRecovery(address(1), v, r, s)` and assert that `safe.getOwners()` has already rotated to `recoveryOwners`.
 
 ## [MEDIUM] Unbounded expiration period can permanently brick timelocked execution
+> **KLD-006** · Normalized: Medium
 - File: src/Timelock.sol:L289-L294
 - Severity: Medium
 - Confidence: High
@@ -15,6 +17,7 @@
 - PoC: In a Foundry test, first `vm.warp(31 days)`, deploy `new Timelock(address(this), 1 days, type(uint256).max, guardian, 1 days, new address[](0))`, and call `schedule(address(timelock), 0, abi.encodeCall(timelock.updateExpirationPeriod, (1 days)), bytes32(0), 1 days)`. Warp to the stored proposal timestamp, then expect `stdError.arithmeticError` when calling `execute` with the same arguments; scheduling the same repair with a fresh salt also cannot make it executable.
 
 ## [MEDIUM] Factory accepts recovery owners that Safe can never install
+> **KLD-008** · Normalized: Medium
 - File: src/RecoverySpellFactory.sol:L124-L137
 - Severity: Medium
 - Confidence: High
@@ -23,6 +26,7 @@
 - PoC: In a Foundry test, calculate the system Safe with no spells, set `recoveryOwners = [address(1)]`, calculate its spell address, add that address to `instance.recoverySpells`, and deploy the instance normally. Call `createRecoverySpell(salt, recoveryOwners, safe, 1, 0, 0)`, `vm.warp(block.timestamp + 1)`, then expect `"RecoverySpell: Recovery failed"` from `spell.executeRecovery(address(1), new uint8[](0), new bytes32[](0), new bytes32[](0))`; assert the original Safe owners are unchanged.
 
 ## [MEDIUM] Failed Safe module calls are recorded as executed
+> **KLD-014** · Normalized: Medium
 - File: src/Timelock.sol:L1021-L1025
 - Severity: Medium
 - Confidence: High

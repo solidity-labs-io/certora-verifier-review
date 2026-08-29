@@ -1,4 +1,5 @@
 ## [Medium] `_afterCall` uses post-execution `expirationPeriod`, permanently locking governance proposals that decrease it
+> **KLD-003** · Normalized: Medium
 
 - File: src/Timelock.sol:1009-1015, src/Timelock.sol:399-404, src/Timelock.sol:972-977
 - Severity: Medium
@@ -48,6 +49,7 @@ function testAfterCallExpirationRevert() public {
 ```
 
 ## [Medium] `initialize()` has no access control — front-running DoS or malicious calldata injection when using TimelockFactory directly
+> **KLD-016** · Normalized: Low
 
 - File: src/Timelock.sol:316-329, src/TimelockFactory.sol:37-55
 - Severity: Medium

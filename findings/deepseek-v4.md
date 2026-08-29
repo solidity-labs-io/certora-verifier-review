@@ -1,4 +1,5 @@
 ## [MEDIUM] Hot signer can permanently stash the entire native balance in cETH (wildcard `mint` + unchecked `value`) with no whitelisted exit
+> **KLD-010** · Normalized: Medium
 - File: src/Timelock.sol:488-493 (wildcard), src/Timelock.sol:715-755 (value unchecked); reference whitelist: test/integration/System.t.sol:283-292 (cEther.mint wildcard [4,4), weth.deposit/withdraw wildcards)
 - Severity: Medium
 - Confidence: High
@@ -18,6 +19,7 @@
   ```
 
 ## [MEDIUM] `createSystemInstance` silently deploys a 1-of-1 wallet when `owners.length == 1`; requested `threshold` is never validated for single-owner instances
+> **KLD-017** · Normalized: Low
 - File: src/InstanceDeployer.sol:315-328 (threshold branch), lack of validation at src/InstanceDeployer.sol:139-163
 - Severity: Medium
 - Confidence: High
@@ -34,6 +36,7 @@
   ```
 
 ## [LOW] Whitelist does not pin Morpho markets for `supplyCollateral`/`borrow`, letting a compromised hot signer drain the wallet via an attacker-created market and liquidation
+> **KLD-011** · Normalized: Medium
 - File: src/Timelock.sol:475-504 (checkCalldata), src/Timelock.sol:715-755 (executeWhitelisted/executeWhitelistedBatch); exposed by the reference whitelist configuration in test/integration/System.t.sol:280-295
 - Severity: High
 - Confidence: Medium

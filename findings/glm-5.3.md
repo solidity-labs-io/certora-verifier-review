@@ -1,4 +1,5 @@
 ## [HIGH] Guardian pause can be permanently gas-DoSed by flooding live proposals
+> **KLD-001** · Normalized: High
 - File: src/Timelock.sol:687-700 (flood vector at src/Timelock.sol:521-539, no cap on live proposals, src/Timelock.sol:107)
 - Severity: High
 - Confidence: High
@@ -29,6 +30,7 @@ function testPauseDoSByProposalFlood() public {
 ```
 
 ## [MEDIUM] Recovery delay starts at permissionless spell deployment, not at module enablement
+> **KLD-012** · Normalized: Medium
 - File: src/RecoverySpell.sol:124 (factory permissionless at src/RecoverySpellFactory.sol:44-56; module enabled later at src/InstanceDeployer.sol:274-291)
 - Severity: Medium
 - Confidence: Medium
@@ -60,6 +62,7 @@ function testPreElapsedRecoveryDelay() public {
 ```
 
 ## [MEDIUM] Off-by-one in calldata-check overlap validation rejects adjacent ranges, forcing exploitable unchecked gap bytes
+> **KLD-007** · Normalized: Medium
 - File: src/Timelock.sol:1119-1123 (range semantics at src/BytesHelper.sol:35-58, enforcement at src/Timelock.sol:488-503)
 - Severity: Medium
 - Confidence: Medium
@@ -90,6 +93,7 @@ function testAdjacentRangeGapBypass() public {
 ```
 
 ## [MEDIUM] Recovery spell factory accepts owners the Safe can never install, permanently bricking recovery
+> **KLD-008** · Normalized: Medium
 - File: src/RecoverySpellFactory.sol:135-137 (triggers src/RecoverySpell.sol:268-280)
 - Severity: Medium
 - Confidence: Medium
@@ -112,6 +116,7 @@ function testSentinelOwnerBricksRecovery() public {
 ```
 
 ## [MEDIUM] executeRecovery permanently reverts when owners[0] is the surviving Safe owner
+> **KLD-013** · Normalized: Medium
 - File: src/RecoverySpell.sol:259-273
 - Severity: Medium
 - Confidence: Medium
